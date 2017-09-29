@@ -29,7 +29,7 @@ def processDataset(filename):
 	allLines = openedFile.readlines()
 	myStr = ""
 	for line in allLines:
-	    myStr += line
+	    myStr += line + ' '
 	finalDict = Counter(myStr.split())
 	return myStr, finalDict
 
@@ -39,15 +39,20 @@ def createTrainingMatrices(dictionary, corpus):
 	numTotalWords = len(allWords)
 	xTrain=[]
 	yTrain=[]
+
+        wordIndex={}
+        for i, word in enumerate(allUniqueWords):
+            wordIndex[word] = i
+
 	for i in range(numTotalWords):
-		if i % 100000 == 0:
+		if i % 10000 == 0:
 			print 'Finished %d/%d total words' % (i, numTotalWords)
 		wordsAfter = allWords[i + 1:i + windowSize + 1]
 		wordsBefore = allWords[max(0, i - windowSize):i]
 		wordsAdded = wordsAfter + wordsBefore
 		for word in wordsAdded:
-			xTrain.append(allUniqueWords.index(allWords[i]))
-			yTrain.append(allUniqueWords.index(word))
+			xTrain.append(wordIndex[allWords[i]])
+			yTrain.append(wordIndex[word])
 	return allUniqueWords, xTrain, yTrain
 
 def getTrainingBatch():
@@ -57,24 +62,23 @@ def getTrainingBatch():
 	return arr, labels[:,np.newaxis]
 
 # Loading the data structures if they are present in the directory
-if (os.path.isfile('Word2VecXTrain.npy') and os.path.isfile('Word2VecYTrain.npy') and os.path.isfile('wordList.txt')):
-	xTrain = np.load('Word2VecXTrain.npy')
-	yTrain = np.load('Word2VecYTrain.npy')
-	print 'Finished loading training matrices'
-	with open("wordList.txt", "rb") as fp:
-		wordList = pickle.load(fp)
-	print 'Finished loading word list'
-
-else:
+if not (os.path.isfile('Word2VecXTrain.npy') and os.path.isfile('Word2VecYTrain.npy') and os.path.isfile('wordList.txt')):
 	fullCorpus, datasetDictionary = processDataset('conversationData.txt')
 	print 'Finished parsing and cleaning dataset'
 	wordList, xTrain, yTrain  = createTrainingMatrices(datasetDictionary, fullCorpus)
 	print 'Finished creating training matrices'
 	np.save('Word2VecXTrain.npy', xTrain)
 	np.save('Word2VecYTrain.npy', yTrain)
-	with open("wordList.txt", "wb") as fp: 
+	with open("wordList.txt", "wb") as fp:
 		pickle.dump(wordList, fp)
-	
+
+xTrain = np.load('Word2VecXTrain.npy')
+yTrain = np.load('Word2VecYTrain.npy')
+print 'Finished loading training matrices'
+with open("wordList.txt", "rb") as fp:
+        wordList = pickle.load(fp)
+print 'Finished loading word list'
+
 numTrainingExamples = len(xTrain)
 vocabSize = len(wordList)
 
@@ -99,11 +103,16 @@ loss = tf.reduce_mean(
 optimizer = tf.train.GradientDescentOptimizer(learning_rate=1.0).minimize(loss)
 
 sess.run(tf.global_variables_initializer())
+minLoss = float("inf")
 for i in range(numIterations):
 	trainInputs, trainLabels = getTrainingBatch()
 	_, curLoss = sess.run([optimizer, loss], feed_dict={inputs: trainInputs, outputs: trainLabels})
-	if (i % 10000 == 0):
-		print ('Current loss is:', curLoss)
-print 'Saving the word embedding matrix'
-embedMatrix = embeddingMatrix.eval(session=sess)
-np.save('embeddingMatrix.npy', embedMatrix)
+        if i % 10000 == 0:
+		print i, 'Current loss is:', curLoss
+        if curLoss < minLoss:
+                print i, 'New min loss', curLoss
+                minLoss = curLoss
+                print 'Saving the word embedding matrix'
+                embedMatrix = embeddingMatrix.eval(session=sess)
+                np.save('embeddingMatrix.npy', embedMatrix)
+
