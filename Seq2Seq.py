@@ -205,7 +205,7 @@ logdir = "tensorboard/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "/
 writer = tf.summary.FileWriter(logdir, sess.graph)
 
 # Some test strings that we'll use as input at intervals during training
-encoderTestStrings = ["hii", "chetori?", "che khabar?"]
+encoderTestStrings = ["hii", "chetori", "che khabar"]
 
 zeroVector = np.zeros((1), dtype='int32')
 #minLoss = float("inf")
@@ -234,7 +234,7 @@ for i in range(numIterations):
 		ids = (sess.run(decoderPrediction, feed_dict=feedDict))
 		print idsToSentence(ids, wordList)
 
-	if (i % 5000 == 0 and i != 0):
+	if (i % 10000 == 0 and i != 0):
                 print 'Saving periodic with loss', curLoss, 'at iteration', i
 		saver.save(sess, "models/pretrained_seq2seq.ckpt", global_step=i)
 

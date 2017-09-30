@@ -54,5 +54,5 @@ for key,value in combinedDictionary.iteritems():
 	if (not key.strip() or not value.strip()):
 		# If there are empty strings
 		continue
-   	conversationFile.write(key.strip() + value.strip())
+   	conversationFile.write(key.strip() + ' ' + value.strip() + ' ')
 
